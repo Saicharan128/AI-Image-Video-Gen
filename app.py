@@ -11,7 +11,7 @@ from urllib3.util.retry import Retry
 app = Flask(__name__)
 
 # Initialize RunwayML client
-client = RunwayML(api_key='key_516ff97d1cc691701b86a677a407511d9840c658f3aad8e6c95a64da6c9f5eb77563e46843479e0942b9a9721199fe618ff20560e5a6ef5e183b352bc446b877')  # Replace with your actual API key
+client = RunwayML(api_key='###')  # Replace with your actual API key
 
 # Directory to store generated files
 OUTPUT_DIR = "static/generated"
