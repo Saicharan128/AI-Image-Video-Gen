@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Content Gallery</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            /* Colors */
+            --bg-primary: rgba(17, 19, 23, 0.8);
+            --bg-secondary: rgba(26, 28, 32, 0.5);
+            --bg-tertiary: rgba(38, 40, 44, 0.3);
+            --text-primary: rgba(255, 255, 255, 0.95);
+            --text-secondary: rgba(255, 255, 255, 0.65);
+            --accent: rgba(59, 130, 246, 0.9);
+            --accent-muted: rgba(59, 130, 246, 0.15);
+            --error: rgba(239, 68, 68, 0.9);
+            --success: rgba(34, 197, 94, 0.9);
+            --border: rgba(255, 255, 255, 0.08);
+
+            /* Sizes */
+            --border-radius: 8px;
+            --button-radius: 6px;
+            --modal-radius: 12px;
+            --blur-amount: 12px;
+
+            /* Transitions */
+            --transition-speed: 0.2s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f1115 0%, #1a1c23 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            background: var(--bg-secondary);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            padding: 16px 24px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: var(--button-radius);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: background var(--transition-speed);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: var(--bg-secondary);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: rgba(59, 130, 246, 1);
+        }
+
+        .gallery-container {
+            position: relative;
+            margin-bottom: 30px;
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid var(--border);
+            padding: 20px;
+        }
+
+        .gallery-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .gallery-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            transition: all var(--transition-speed);
+        }
+
+        .gallery-tab.active {
+            color: var(--text-primary);
+            border-bottom-color: var(--accent);
+        }
+
+        .gallery-content {
+            display: none;
+        }
+
+        .gallery-content.active {
+            display: block;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .gallery-item {
+            background: var(--bg-tertiary);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+            border: 1px solid var(--border);
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .gallery-thumbnail {
+            width: 100%;
+            height: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gallery-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .gallery-thumbnail .play-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 48px;
+            height: 48px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity var(--transition-speed);
+        }
+
+        .gallery-item:hover .play-icon {
+            opacity: 1;
+        }
+
+        .gallery-info {
+            padding: 15px;
+        }
+
+        .gallery-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 40px;
+        }
+
+        .gallery-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .gallery-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .gallery-btn {
+            flex: 1;
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+
+        .empty-gallery {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 0;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 15, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-speed);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-primary);
+            border-radius: var(--modal-radius);
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all var(--transition-speed);
+            border: 1px solid var(--border);
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .modal-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 22px;
+            cursor: pointer;
+            transition: color var(--transition-speed);
+        }
+
+        .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .modal-body img {
+            max-width: 100%;
+            max-height: 70vh;
+            margin-bottom: 15px;
+        }
+
+        .modal-body video {
+            max-width: 100%;
+            max-height: 70vh;
+            margin-bottom: 15px;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--text-primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="app-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z"
+                            stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <path
+                            d="M9 10C10.1046 10 11 9.10457 11 8C11 6.89543 10.1046 6 9 6C7.89543 6 7 6.89543 7 8C7 9.10457 7.89543 10 9 10Z"
+                            stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <path
+                            d="M2.67 18.95L7.6 15.64C8.39 15.11 9.53 15.17 10.24 15.78L10.57 16.07C11.35 16.74 12.61 16.74 13.39 16.07L17.55 12.5C18.33 11.83 19.59 11.83 20.37 12.5L22 13.9"
+                            stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <div class="logo-text">AI Content Gallery</div>
+            </div>
+            <div class="actions">
+                <a href="/video" class="btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" stroke-width="2" />
+                        <path d="M14 12L10 9V15L14 12Z" fill="currentColor" />
+                    </svg>
+                    Video Generator
+                </a>
+                <a href="/image" class="btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+                        <path d="M21 15L16 10L8 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                    Image Generator
+                </a>
+                <button class="btn btn-primary" id="export-all-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                    Export All
+                </button>
+            </div>
+        </header>
+
+        <div class="gallery-container">
+            <div class="gallery-tabs">
+                <div class="gallery-tab active" data-tab="all">All Content</div>
+                <div class="gallery-tab" data-tab="images">Images</div>
+                <div class="gallery-tab" data-tab="videos">Videos</div>
+            </div>
+
+            <div class="gallery-content active" id="all-content">
+                <div class="empty-gallery" id="all-loading">
+                    <div class="loading-spinner"></div>
+                    <div>Loading all content...</div>
+                </div>
+                <div class="gallery-grid" id="all-grid"></div>
+            </div>
+
+            <div class="gallery-content" id="images-content">
+                <div class="empty-gallery" id="images-loading">
+                    <div class="loading-spinner"></div>
+                    <div>Loading images...</div>
+                </div>
+                <div class="gallery-grid" id="images-grid"></div>
+            </div>
+
+            <div class="gallery-content" id="videos-content">
+                <div class="empty-gallery" id="videos-loading">
+                    <div class="loading-spinner"></div>
+                    <div>Loading videos...</div>
+                </div>
+                <div class="gallery-grid" id="videos-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Tab switching
+            const tabs = document.querySelectorAll('.gallery-tab');
+            const contents = document.querySelectorAll('.gallery-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+
+                    // Update active tab
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    // Update active content
+                    contents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === `${tabName}-content`) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            // Fetch all content from API
+            function fetchContent() {
+                fetch('/api/all-content')
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                        return response.json();
+                    })
+                    .then(data => {
+                        renderGalleryContent(data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching content:', error);
+                        showError('all', error.message);
+                        showError('images', error.message);
+                        showError('videos', error.message);
+                    });
+            }
+
+            function showError(section, message) {
+                const loadingEl = document.getElementById(`${section}-loading`);
+                if (loadingEl) {
+                    loadingEl.innerHTML = `
+                        <div>Error loading content</div>
+                        <div>${message}</div>
+                    `;
+                }
+            }
+
+            function showEmpty(section, message) {
+                const loadingEl = document.getElementById(`${section}-loading`);
+                if (loadingEl) {
+                    loadingEl.innerHTML = `
+                        <div>${message || 'No content found'}</div>
+                    `;
+                }
+            }
+
+            function renderGalleryContent(data) {
+                // Hide loading indicators
+                document.getElementById('all-loading').style.display = 'none';
+                document.getElementById('images-loading').style.display = 'none';
+                document.getElementById('videos-loading').style.display = 'none';
+
+                // Get grid containers
+                const allGrid = document.getElementById('all-grid');
+                const imagesGrid = document.getElementById('images-grid');
+                const videosGrid = document.getElementById('videos-grid');
+
+                // Clear existing content
+                allGrid.innerHTML = '';
+                imagesGrid.innerHTML = '';
+                videosGrid.innerHTML = '';
+
+                // Check if we have content
+                const hasImages = data.images && data.images.length > 0;
+                const hasVideos = data.videos && data.videos.length > 0;
+                const hasContent = hasImages || hasVideos;
+
+                if (!hasContent) {
+                    showEmpty('all', 'No content found. Start creating images and videos!');
+                    showEmpty('images', 'No images found. Create some in the Image Generator!');
+                    showEmpty('videos', 'No videos found. Create some in the Video Generator!');
+                    return;
+                }
+
+                // Render images
+                if (hasImages) {
+                    data.images.forEach(image => {
+                        const imageEl = createImageElement(image);
+                        imagesGrid.appendChild(imageEl);
+
+                        // Also add to all content grid
+                        allGrid.appendChild(imageEl.cloneNode(true));
+
+                        // Add event listeners to the new element in the all grid
+                        const allGridImageEl = allGrid.lastElementChild;
+                        setupImageEventListeners(allGridImageEl, image);
+
+                        // Add event listeners to the element in the images grid
+                        setupImageEventListeners(imageEl, image);
+                    });
+                } else {
+                    showEmpty('images', 'No images found. Create some in the Image Generator!');
+                }
+
+                // Render videos
+                if (hasVideos) {
+                    data.videos.forEach(video => {
+                        const videoEl = createVideoElement(video);
+                        videosGrid.appendChild(videoEl);
+
+                        // Also add to all content grid
+                        allGrid.appendChild(videoEl.cloneNode(true));
+
+                        // Add event listeners to the new element in the all grid
+                        const allGridVideoEl = allGrid.lastElementChild;
+                        setupVideoEventListeners(allGridVideoEl, video);
+
+                        // Add event listeners to the element in the videos grid
+                        setupVideoEventListeners(videoEl, video);
+                    });
+                } else {
+                    showEmpty('videos', 'No videos found. Create some in the Video Generator!');
+                }
+            }
+
+            function createImageElement(image) {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'gallery-item';
+                itemEl.innerHTML = `
+                    <div class="gallery-thumbnail">
+                        <img src="${image.path}" alt="${image.prompt}">
+                    </div>
+                    <div class="gallery-info">
+                        <div class="gallery-title">${image.prompt}</div>
+                        <div class="gallery-meta">
+                            <span>Resolution: ${image.resolution}</span>
+                            <span>Image</span>
+                        </div>
+                        <div class="gallery-actions">
+                            <button class="btn gallery-btn view-btn">View</button>
+                            <button class="btn gallery-btn download-btn">Download</button>
+                        </div>
+                    </div>
+                `;
+                return itemEl;
+            }
+
+            function createVideoElement(video) {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'gallery-item';
+                itemEl.innerHTML = `
+                    <div class="gallery-thumbnail">
+                        <img src="${video.thumbnail}" alt="${video.prompt}">
+                        <div class="play-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5 3L19 12L5 21V3Z" fill="white"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="gallery-info">
+                        <div class="gallery-title">${video.prompt}</div>
+                        <div class="gallery-meta">
+                            <span>Duration: ${video.duration}s</span>
+                            <span>Video</span>
+                        </div>
+                        <div class="gallery-actions">
+                            <button class="btn gallery-btn play-btn">Play</button>
+                            <button class="btn gallery-btn download-btn">Download</button>
+                        </div>
+                    </div>
+                `;
+                return itemEl;
+            }
+
+            function setupImageEventListeners(element, image) {
+                const viewBtn = element.querySelector('.view-btn');
+                const downloadBtn = element.querySelector('.download-btn');
+
+                if (viewBtn) {
+                    viewBtn.addEventListener('click', () => {
+                        openImageModal(image);
+                    });
+                }
+
+                if (downloadBtn) {
+                    downloadBtn.addEventListener('click', () => {
+                        downloadImage(image);
+                    });
+                }
+
+                // Also make the thumbnail clickable
+                const thumbnail = element.querySelector('.gallery-thumbnail');
+                if (thumbnail) {
+                    thumbnail.addEventListener('click', () => {
+                        openImageModal(image);
+                    });
+                }
+            }
+
+            function setupVideoEventListeners(element, video) {
+                const playBtn = element.querySelector('.play-btn');
+                const downloadBtn = element.querySelector('.download-btn');
+
+                if (playBtn) {
+                    playBtn.addEventListener('click', () => {
+                        openVideoModal(video);
+                    });
+                }
+
+                if (downloadBtn) {
+                    downloadBtn.addEventListener('click', () => {
+                        downloadVideo(video);
+                    });
+                }
+
+                // Also make the thumbnail clickable
+                const thumbnail = element.querySelector('.gallery-thumbnail');
+                if (thumbnail) {
+                    thumbnail.addEventListener('click', () => {
+                        openVideoModal(video);
+                    });
+                }
+            }
+
+            function openImageModal(image) {
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay active';
+                modal.innerHTML = `
+                    <div class="modal">
+                        <div class="modal-header">
+                            <div class="modal-title">Image Preview</div>
+                            <button class="close-btn">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <img src="${image.path}" alt="${image.prompt}">
+                            <div class="gallery-actions">
+                                <button class="btn btn-primary download-modal-btn">Download Image</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                modal.querySelector('.close-btn').addEventListener('click', () => {
+                    modal.remove();
+                });
+
+                modal.querySelector('.download-modal-btn').addEventListener('click', () => {
+                    downloadImage(image);
+                });
+            }
+
+            function openVideoModal(video) {
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay active';
+                modal.innerHTML = `
+                    <div class="modal">
+                        <div class="modal-header">
+                            <div class="modal-title">Video Preview</div>
+                            <button class="close-btn">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <video src="${video.path}" controls autoplay style="max-width: 100%; max-height: 70vh;"></video>
+                            <div class="gallery-actions">
+                                <button class="btn btn-primary download-modal-btn">Download Video</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                modal.querySelector('.close-btn').addEventListener('click', () => {
+                    modal.remove();
+                });
+
+                modal.querySelector('.download-modal-btn').addEventListener('click', () => {
+                    downloadVideo(video);
+                });
+            }
+
+            function downloadImage(image) {
+                const link = document.createElement('a');
+                link.href = `/download${image.path.substring(image.path.lastIndexOf('/'))}`;
+                link.download = image.path.split('/').pop();
+                link.click();
+            }
+
+            function downloadVideo(video) {
+                const link = document.createElement('a');
+                link.href = `/download${video.path.substring(video.path.lastIndexOf('/'))}`;
+                link.download = video.path.split('/').pop();
+                link.click();
+            }
+
+            // Export all button functionality
+            const exportAllBtn = document.getElementById('export-all-btn');
+            if (exportAllBtn) {
+                exportAllBtn.addEventListener('click', () => {
+                    fetch('/api/all-content')
+                        .then(response => {
+                            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                            return response.json();
+                        })
+                        .then(data => {
+                            // Export all images
+                            if (data.images && data.images.length > 0) {
+                                data.images.forEach(image => {
+                                    downloadImage(image);
+                                });
+                            }
+
+                            // Export all videos
+                            if (data.videos && data.videos.length > 0) {
+                                data.videos.forEach(video => {
+                                    downloadVideo(video);
+                                });
+                            }
+
+                            if (!data.images.length && !data.videos.length) {
+                                alert('No content to export. Generate some images or videos first!');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching content for export:', error);
+                            alert(`Error exporting content: ${error.message}`);
+                        });
+                });
+            }
+
+            // Initial fetch of content
+            fetchContent();
+
+            // Set up refresh interval
+            setInterval(fetchContent, 60000); // Refresh every minute
+        });
+    </script>
+</body>
+
+</html>

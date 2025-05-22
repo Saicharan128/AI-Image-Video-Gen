@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Generator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            /* Colors */
+            --bg-primary: rgba(17, 19, 23, 0.8);
+            --bg-secondary: rgba(26, 28, 32, 0.5);
+            --bg-tertiary: rgba(38, 40, 44, 0.3);
+            --text-primary: rgba(255, 255, 255, 0.95);
+            --text-secondary: rgba(255, 255, 255, 0.65);
+            --accent: rgba(59, 130, 246, 0.9);
+            --accent-muted: rgba(59, 130, 246, 0.15);
+            --error: rgba(239, 68, 68, 0.9);
+            --success: rgba(34, 197, 94, 0.9);
+            --border: rgba(255, 255, 255, 0.08);
+
+            /* Sizes */
+            --border-radius: 8px;
+            --button-radius: 6px;
+            --modal-radius: 12px;
+            --blur-amount: 12px;
+
+            /* Transitions */
+            --transition-speed: 0.2s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f1115 0%, #1a1c23 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            background: var(--bg-secondary);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            padding: 16px 24px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: var(--button-radius);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: background var(--transition-speed);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: var(--bg-secondary);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: rgba(59, 130, 246, 1);
+        }
+
+        .btn:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .timeline-container {
+            position: relative;
+            margin-bottom: 30px;
+            background: var(--bg-secondary);
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid var(--border);
+            padding: 20px;
+        }
+
+        .timeline-label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .timeline {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            padding: 4px;
+            min-height: 280px;
+            overflow-x: hidden; /* Change from auto to hidden */
+        }
+
+        .timeline::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .timeline::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .timeline::-webkit-scrollbar-thumb {
+            background-color: var(--bg-tertiary);
+            border-radius: 20px;
+        }
+
+        .scene-card {
+            background: var(--bg-tertiary);
+            width: 100%;
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+            flex-shrink: 0;
+            cursor: grab;
+        }
+
+        .scene-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .scene-card.dragging {
+            opacity: 0.8;
+            cursor: grabbing;
+        }
+
+        .card-thumbnail {
+            width: 100%;
+            height: 135px;
+            background-color: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .scene-number {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .card-content {
+            padding: 12px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            line-height: 1.4;
+            color: var(--text-primary);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 40px;
+        }
+
+        .card-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        .card-btn {
+            padding: 6px 8px;
+            font-size: 12px;
+            flex: 1;
+            border-radius: 4px;
+        }
+
+        .add-scene-card {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 240px;
+            height: 224px;
+            background: var(--bg-tertiary);
+            border-radius: var(--border-radius);
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            transition: all var(--transition-speed);
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .add-scene-floating {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .add-scene-floating:hover {
+            transform: scale(1.1);
+            background: rgba(59, 130, 246, 1);
+        }
+
+        .add-scene-floating .add-icon {
+            color: white;
+            font-size: 24px;
+            width: auto;
+            height: auto;
+            background: none;
+        }
+
+        .add-scene-card:hover {
+            background: var(--bg-secondary);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .add-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 15, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-speed);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-primary);
+            border-radius: var(--modal-radius);
+            width: 90%;
+            max-width: 550px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all var(--transition-speed);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .modal-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 22px;
+            cursor: pointer;
+            transition: color var(--transition-speed);
+        }
+
+        .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--button-radius);
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all var(--transition-speed);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent-muted);
+        }
+
+        textarea.form-input {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            transition: all var(--transition-speed);
+        }
+
+        .tab.active {
+            color: var(--text-primary);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .scene-duration {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .duration-slider {
+            flex: 1;
+        }
+
+        .duration-value {
+            width: 50px;
+            text-align: center;
+            padding: 4px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .empty-timeline {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 224px;
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--text-primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .status-indicator {
+            font-size: 12px;
+            margin-top: 8px;
+            color: var(--text-secondary);
+        }
+
+        /* Make cards responsive on smaller screens */
+        @media (max-width: 1200px) {
+            .timeline {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .timeline {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .timeline {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="glow-effect" id="glow-effect"></div>
+        <div class="app-container">
+            <header class="app-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 4L4 8L12 12L20 8L12 4Z" stroke="white" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="M4 16L12 20L20 16" stroke="white" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="M4 12L12 16L20 12" stroke="white" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                    <div class="logo-text">AI Video Generator</div>
+                </div>
+                <div class="actions">
+                    <button class="btn" id="generate-video-btn" disabled style="display: none;" >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M12 18V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M4.93 4.93L7.76 7.76" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" />
+                            <path d="M16.24 16.24L19.07 19.07" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" />
+                            <path d="M2 12H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M18 12H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M4.93 19.07L7.76 16.24" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" />
+                            <path d="M16.24 7.76L19.07 4.93" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" />
+                        </svg>
+                        Generate Video
+                    </button>
+                    <button class="btn btn-primary" id="export-btn" disabled>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                        Export
+                    </button>
+                </div>
+            </header>
+            <div class="timeline-container">
+                <div class="timeline-label">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" stroke-width="2" />
+                        <path d="M14 12L10 9V15L14 12Z" fill="currentColor" />
+                    </svg>
+                    Timeline
+                </div>
+                <div class="timeline" id="timeline">
+                    <!-- Scene cards will be added here dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="add-scene-floating" id="floating-add-btn">
+        <div class="add-icon">+</div>
+    </div>
+    <!-- Edit Scene Modal -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Edit Scene</div>
+                <button class="close-btn" id="close-edit-modal">×</button>
+            </div>
+            <div class="tabs">
+                <div class="tab active" data-tab="prompt">Prompt</div>
+                <div class="tab" data-tab="settings">Settings</div>
+            </div>
+            <div class="modal-body">
+                <div class="tab-content active" id="prompt-tab">
+                    <div class="form-group">
+                        <label class="form-label">Scene Prompt</label>
+                        <textarea class="form-input" id="scene-prompt"
+                            placeholder="Describe what you want to see in this scene (e.g., A futuristic city with flying cars)"></textarea>
+                    </div>
+                </div>
+                <div class="tab-content" id="settings-tab">
+                    <div class="form-group">
+                        <label class="form-label">Resolution</label>
+                        <select class="form-input" id="resolution">
+                            <option value="1080p">1080p (16:9)</option>
+                            <option value="square">Square (1:1)</option>
+                            <option value="vertical">Vertical (9:16)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Scene Duration</label>
+                        <div class="scene-duration">
+                            <input type="range" min="1" max="10" value="3" class="form-input duration-slider"
+                                id="duration-slider">
+                            <div class="duration-value" id="duration-value">3s</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="delete-scene-btn">Delete</button>
+                <button class="btn" id="cancel-edit-btn">Cancel</button>
+                <button class="btn btn-primary" id="save-edit-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+    <!-- Add Scene Modal -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Add New Scene</div>
+                <button class="close-btn" id="close-add-modal">×</button>
+            </div>
+            <div class="tabs">
+                <div class="tab active" data-tab="add-prompt">Prompt</div>
+                <div class="tab" data-tab="add-settings">Settings</div>
+            </div>
+            <div class="modal-body">
+                <div class="tab-content active" id="add-prompt-tab">
+                    <div class="form-group">
+                        <label class="form-label">Scene Prompt</label>
+                        <textarea class="form-input" id="add-scene-prompt"
+                            placeholder="Describe what you want to see in this scene (e.g., A futuristic city with flying cars)"></textarea>
+                    </div>
+                </div>
+                <div class="tab-content" id="add-settings-tab">
+                    <div class="form-group">
+                        <label class="form-label">Resolution</label>
+                        <select class="form-input" id="add-resolution">
+                            <option value="1080p">1080p (16:9)</option>
+                            <option value="square">Square (1:1)</option>
+                            <option value="vertical">Vertical (9:16)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Scene Duration</label>
+                        <div class="scene-duration">
+                            <input type="range" min="1" max="10" value="3" class="form-input duration-slider"
+                                id="add-duration-slider">
+                            <div class="duration-value" id="add-duration-value">3s</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="cancel-add-btn">Cancel</button>
+                <button class="btn btn-primary" id="save-add-btn">Add Scene</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const timeline = document.getElementById('timeline');
+            let currentEditingScene = null;
+            let isGenerating = false;
+
+            // Fetch and render scenes
+            async function fetchScenes() {
+                try {
+                    const response = await fetch('/api/scenes?type=video');
+                    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                    const scenes = await response.json();
+                    // Filter out image-type scenes, only show video scenes
+                    return scenes.filter(scene =>
+                        scene.video_path && scene.type !== 'image'
+                    );
+                } catch (error) {
+                    console.error('Error fetching scenes:', error);
+                    return [];
+                }
+            }
+
+            function renderTimeline(scenes) {
+                timeline.innerHTML = '';
+                if (scenes.length === 0) {
+                    timeline.innerHTML = `
+                        <div class="empty-timeline">
+                            <div>No scenes added yet.</div>
+                            <div>Click "Add Scene" to create your first scene!</div>
+                        </div>
+                    `;
+                    document.getElementById('generate-video-btn').disabled = true;
+                    document.getElementById('export-btn').disabled = true;
+                } else {
+                    scenes.forEach((scene, index) => {
+                        const sceneCard = createSceneCard(scene, index);
+                        timeline.appendChild(sceneCard);
+                    });
+                    document.getElementById('generate-video-btn').disabled = false;
+                    document.getElementById('export-btn').disabled = false;
+                }
+                const addCard = document.createElement('div');
+                addCard.className = 'add-scene-card';
+                addCard.innerHTML = `
+                    <div class="add-icon">+</div>
+                    <div>Generate New Image</div>  // or "Add Scene" in video_gen.html
+                `;
+                addCard.addEventListener('click', openAddModal);
+                timeline.appendChild(addCard);
+            }
+
+            function createSceneCard(scene, index) {
+                const sceneCard = document.createElement('div');
+                sceneCard.className = 'scene-card';
+                sceneCard.dataset.id = scene.id;
+                sceneCard.draggable = true;
+
+                // Determine if this is an image or video scene
+                const isImageScene = scene.type === 'image' || (scene.image_path && !scene.video_path);
+                const isVideoScene = scene.video_path && scene.type !== 'image';
+
+                // Determine the best thumbnail to use
+                let thumbnailPath = '/static/placeholder.jpg';
+                if (isImageScene) {
+                    thumbnailPath = scene.image_path || scene.thumbnail || '/static/placeholder.jpg';
+                } else if (isVideoScene) {
+                    thumbnailPath = scene.thumbnail || '/static/placeholder.jpg';
+                }
+
+                // Get friendly name from filename - UNIVERSAL LOGIC
+                let displayName = scene.prompt; // Start with the prompt from backend
+
+                // If the prompt looks like it contains path info, try to clean it up
+                if (displayName && displayName.includes('\\')) {
+                    // Extract everything after the last backslash
+                    const parts = displayName.split('\\');
+                    displayName = parts[parts.length - 1];
+                }
+
+                // Try to get a better name from the file path
+                let filePath = null;
+                let fileType = 'auto';
+
+                if (isImageScene && scene.image_path) {
+                    filePath = scene.image_path;
+                    fileType = 'image';
+                } else if (isVideoScene && scene.video_path) {
+                    filePath = scene.video_path;
+                    fileType = 'video';
+                }
+
+                if (filePath) {
+                    const filename = getFilenameFromPath(filePath);
+                    const friendlyName = getFriendlyNameFromFilename(filename, fileType);
+
+                    // Use the friendly name if it's meaningful
+                    if (friendlyName &&
+                        !friendlyName.includes("Generated") &&
+                        friendlyName.length > 3) {
+                        displayName = friendlyName;
+                    }
+                }
+
+                // Final cleanup - remove any remaining prefixes
+                displayName = displayName.replace(/^Generated\\Video\s*/i, '');
+                displayName = displayName.replace(/^Generated\\Image\s*/i, '');
+                displayName = displayName.replace(/^Generated Video\s*/i, '');
+                displayName = displayName.replace(/^Generated Image\s*/i, '');
+
+                // If displayName is empty after cleanup, use a default
+                if (!displayName || displayName.trim() === '') {
+                    displayName = isImageScene ? "Generated Image" : "Generated Video";
+                }
+
+                // Debug logs to help troubleshoot
+                console.log("Scene type:", isImageScene ? "Image" : "Video");
+                console.log("Scene prompt:", scene.prompt);
+                console.log("File path:", filePath);
+                console.log("Final display name:", displayName);
+
+                const sceneLabel = isImageScene ? "Image" : "Scene";
+
+                sceneCard.innerHTML = `
+        <div class="card-thumbnail">
+            <img src="${thumbnailPath}" alt="${isImageScene ? 'Image' : 'Scene'} Thumbnail">
+            <div class="scene-number">${sceneLabel} ${index + 1}</div>
+        </div>
+        <div class="card-content">
+            <div class="card-title">${displayName}</div>
+            <div class="card-actions">
+                <button class="btn card-btn preview-btn">${isImageScene ? 'View' : 'Preview'}</button>
+                <button class="btn card-btn edit-btn">Edit</button>
+                <button class="btn card-btn regenerate-btn">Regenerate</button>
+            </div>
+        </div>
+    `;
+
+                const previewBtn = sceneCard.querySelector('.preview-btn');
+                const editBtn = sceneCard.querySelector('.edit-btn');
+                const regenerateBtn = sceneCard.querySelector('.regenerate-btn');
+
+                // Handle preview for both images and videos
+                previewBtn.addEventListener('click', () => {
+                    if (isImageScene && (scene.image_path || scene.thumbnail)) {
+                        const imagePath = scene.image_path || scene.thumbnail;
+                        const filename = getFilenameFromPath(imagePath);
+                        const friendlyName = getFriendlyNameFromFilename(filename, 'image') || displayName;
+
+                        const modal = document.createElement('div');
+                        modal.className = 'modal-overlay active';
+                        modal.innerHTML = `
+                <div class="modal">
+                    <div class="modal-header">
+                        <div class="modal-title">${friendlyName}</div>
+                        <button class="close-btn">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <img src="${imagePath}" style="max-width: 100%; max-height: 70vh; border-radius: var(--border-radius);">
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary download-btn">Download Image</button>
+                    </div>
+                </div>
+            `;
+
+                        modal.querySelector('.close-btn').addEventListener('click', () => modal.remove());
+                        modal.querySelector('.download-btn').addEventListener('click', () => {
+                            const filename = imagePath.split('/').pop();
+                            const link = document.createElement('a');
+                            link.href = `/download/${filename}`;
+                            link.download = filename;
+                            link.click();
+                        });
+
+                        document.body.appendChild(modal);
+
+                    } else if (isVideoScene && scene.video_path) {
+                        const videoPath = scene.video_path;
+                        const filename = getFilenameFromPath(videoPath);
+                        const friendlyName = getFriendlyNameFromFilename(filename, 'video') || displayName;
+
+                        const video = document.createElement('video');
+                        video.src = scene.video_path;
+                        video.controls = true;
+                        video.autoplay = true;
+                        video.style.maxWidth = '100%';
+                        video.style.borderRadius = 'var(--border-radius)';
+
+                        const modal = document.createElement('div');
+                        modal.className = 'modal-overlay active';
+                        modal.innerHTML = `
+                <div class="modal">
+                    <div class="modal-header">
+                        <div class="modal-title">${friendlyName}</div>
+                        <button class="close-btn">×</button>
+                    </div>
+                    <div class="modal-body"></div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary download-btn">Download Video</button>
+                    </div>
+                </div>
+            `;
+                        modal.querySelector('.modal-body').appendChild(video);
+                        modal.querySelector('.close-btn').addEventListener('click', () => modal.remove());
+
+                        modal.querySelector('.download-btn').addEventListener('click', () => {
+                            const filename = videoPath.split('/').pop();
+                            const link = document.createElement('a');
+                            link.href = `/download/${filename}`;
+                            link.download = filename;
+                            link.click();
+                        });
+
+                        document.body.appendChild(modal);
+                    } else {
+                        alert(`No ${isImageScene ? 'image' : 'video'} available for this ${isImageScene ? 'image' : 'scene'}.`);
+                    }
+                });
+
+                editBtn.addEventListener('click', () => openEditModal(scene));
+
+                regenerateBtn.addEventListener('click', async () => {
+                    if (isGenerating) {
+                        alert('Please wait for the current generation to complete.');
+                        return;
+                    }
+
+                    try {
+                        isGenerating = true;
+                        regenerateBtn.innerHTML = '<div class="loading-spinner"></div>Regenerating...';
+                        regenerateBtn.disabled = true;
+
+                        await updateScene(scene.id, scene);
+                        const updatedScenes = await fetchScenes();
+                        renderTimeline(updatedScenes);
+                    } catch (error) {
+                        alert(`Error regenerating ${isImageScene ? 'image' : 'scene'}: ${error.message}`);
+                        console.error(error);
+                    } finally {
+                        isGenerating = false;
+                        regenerateBtn.innerHTML = 'Regenerate';
+                        regenerateBtn.disabled = false;
+                    }
+                });
+
+                sceneCard.addEventListener('dragstart', (e) => {
+                    sceneCard.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', scene.id);
+                });
+
+                sceneCard.addEventListener('dragend', () => {
+                    sceneCard.classList.remove('dragging');
+                });
+
+                return sceneCard;
+            }
+
+            timeline.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(timeline, e.clientX);
+                const draggable = document.querySelector('.dragging');
+                if (afterElement == null) {
+                    timeline.appendChild(draggable);
+                } else {
+                    timeline.insertBefore(draggable, afterElement);
+                }
+            });
+
+            timeline.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                const sceneCards = document.querySelectorAll('.scene-card');
+                const newOrder = Array.from(sceneCards).map(card => parseInt(card.dataset.id));
+                try {
+                    const response = await fetch('/api/scenes/reorder', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ order: newOrder })
+                    });
+                    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                    const updatedScenes = await fetchScenes();
+                    renderTimeline(updatedScenes);
+                } catch (error) {
+                    alert(`Error reordering scenes: ${error.message}`);
+                    console.error(error);
+                }
+            });
+
+            function getDragAfterElement(container, x) {
+                const draggableElements = [...container.querySelectorAll('.scene-card:not(.dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = x - box.left - box.width / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    }
+                    return closest;
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            const editModal = document.getElementById('edit-modal');
+            const addModal = document.getElementById('add-modal');
+            const closeEditModalBtn = document.getElementById('close-edit-modal');
+            const closeAddModalBtn = document.getElementById('close-add-modal');
+            const saveEditBtn = document.getElementById('save-edit-btn');
+            const cancelEditBtn = document.getElementById('cancel-edit-btn');
+            const deleteSceneBtn = document.getElementById('delete-scene-btn');
+            const saveAddBtn = document.getElementById('save-add-btn');
+            const cancelAddBtn = document.getElementById('cancel-add-btn');
+
+            function openEditModal(scene) {
+                currentEditingScene = scene;
+                document.getElementById('scene-prompt').value = scene.prompt;
+                document.getElementById('resolution').value = scene.resolution;
+                document.getElementById('duration-slider').value = scene.duration;
+                document.getElementById('duration-value').textContent = `${scene.duration}s`;
+                editModal.classList.add('active');
+            }
+
+            function closeEditModal() {
+                editModal.classList.remove('active');
+                currentEditingScene = null;
+            }
+
+            function openAddModal() {
+                document.getElementById('add-scene-prompt').value = '';
+                document.getElementById('add-resolution').value = '1080p';
+                document.getElementById('add-duration-slider').value = 3;
+                document.getElementById('add-duration-value').textContent = '3s';
+                addModal.classList.add('active');
+            }
+
+            function closeAddModal() {
+                addModal.classList.remove('active');
+            }
+
+            closeEditModalBtn.addEventListener('click', closeEditModal);
+            cancelEditBtn.addEventListener('click', closeEditModal);
+            closeAddModalBtn.addEventListener('click', closeAddModal);
+            cancelAddBtn.addEventListener('click', closeAddModal);
+
+            async function updateScene(sceneId, sceneData) {
+                const formData = new FormData();
+                formData.append('prompt', sceneData.prompt);
+                formData.append('resolution', sceneData.resolution);
+                formData.append('duration', sceneData.duration);
+                formData.append('type', 'video');  // Explicitly mark as video scene
+
+                const response = await fetch(`/api/scenes/${sceneId}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || `HTTP error ${response.status}`);
+                }
+
+                return await response.json();
+            }
+
+            saveEditBtn.addEventListener('click', async () => {
+                if (currentEditingScene) {
+                    if (isGenerating) {
+                        alert('Please wait for the current generation to complete.');
+                        return;
+                    }
+
+                    const sceneData = {
+                        prompt: document.getElementById('scene-prompt').value,
+                        resolution: document.getElementById('resolution').value,
+                        duration: document.getElementById('duration-slider').value,
+                    };
+
+                    if (!sceneData.prompt) {
+                        alert('Prompt is required');
+                        return;
+                    }
+
+                    try {
+                        isGenerating = true;
+                        saveEditBtn.innerHTML = '<div class="loading-spinner"></div>Saving...';
+                        saveEditBtn.disabled = true;
+
+                        await updateScene(currentEditingScene.id, sceneData);
+                        const updatedScenes = await fetchScenes();
+                        renderTimeline(updatedScenes);
+                        closeEditModal();
+                    } catch (error) {
+                        alert(`Error updating scene: ${error.message}`);
+                        console.error(error);
+                    } finally {
+                        isGenerating = false;
+                        saveEditBtn.innerHTML = 'Save Changes';
+                        saveEditBtn.disabled = false;
+                    }
+                }
+            });
+
+            if (saveEditBtn) {
+                const originalEditHandler = saveEditBtn.onclick;
+                saveEditBtn.onclick = async function (e) {
+                    if (originalEditHandler) {
+                        await originalEditHandler.call(this, e);
+                    }
+                    // Refresh the timeline and all videos display after editing
+                    setTimeout(() => {
+                        fetchScenes().then(renderTimeline);
+                        fetchAllVideos();
+                    }, 2000); // Wait 2 seconds for server processing
+                };
+            }
+
+            deleteSceneBtn.addEventListener('click', async () => {
+                if (currentEditingScene) {
+                    try {
+                        const response = await fetch(`/api/scenes/${currentEditingScene.id}`, { method: 'DELETE' });
+                        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                        const updatedScenes = await fetchScenes();
+                        renderTimeline(updatedScenes);
+                        closeEditModal();
+                    } catch (error) {
+                        alert(`Error deleting scene: ${error.message}`);
+                        console.error(error);
+                    }
+                }
+            });
+
+            saveAddBtn.addEventListener('click', async () => {
+                if (isGenerating) {
+                    alert('Please wait for the current generation to complete.');
+                    return;
+                }
+
+                const prompt = document.getElementById('add-scene-prompt').value;
+                if (!prompt) {
+                    alert('Prompt is required');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('prompt', prompt);
+                formData.append('resolution', document.getElementById('add-resolution').value);
+                formData.append('duration', document.getElementById('add-duration-slider').value);
+                formData.append('type', 'video');  // Explicitly mark as video scene
+
+                try {
+                    isGenerating = true;
+                    saveAddBtn.innerHTML = '<div class="loading-spinner"></div>Generating...';
+                    saveAddBtn.disabled = true;
+
+                    const response = await fetch('/api/scenes', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        const updatedScenes = await fetchScenes();
+                        renderTimeline(updatedScenes);
+                        closeAddModal();
+                    } else {
+                        const data = await response.json();
+                        alert(`Error: ${data.error || 'Failed to generate scene'}`);
+                    }
+                } catch (error) {
+                    alert(`Network error: ${error.message}. Please check your connection and try again.`);
+                    console.error(error);
+                } finally {
+                    isGenerating = false;
+                    saveAddBtn.innerHTML = 'Add Scene';
+                    saveAddBtn.disabled = false;
+                }
+            });
+
+            if (saveAddBtn) {
+                const originalClickHandler = saveAddBtn.onclick;
+                saveAddBtn.onclick = async function (e) {
+                    if (originalClickHandler) {
+                        await originalClickHandler.call(this, e);
+                    }
+                    // Refresh the timeline and all videos display after adding
+                    setTimeout(() => {
+                        fetchScenes().then(renderTimeline);
+                        fetchAllVideos();
+                    }, 2000); // Wait 2 seconds for server processing
+                };
+            }
+
+            function setupTabs(tabsContainer) {
+                const tabs = tabsContainer.querySelectorAll('.tab');
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const tabId = tab.dataset.tab;
+                        const tabContent = tabsContainer.closest('.modal').querySelector(`#${tabId}-tab`);
+                        tabs.forEach(t => t.classList.remove('active'));
+                        const tabContents = tabsContainer.closest('.modal').querySelectorAll('.tab-content');
+                        tabContents.forEach(tc => tc.classList.remove('active'));
+                        tab.classList.add('active');
+                        tabContent.classList.add('active');
+                    });
+                });
+            }
+
+            setupTabs(document.querySelector('#edit-modal .tabs'));
+            setupTabs(document.querySelector('#add-modal .tabs'));
+
+            function setupDurationSlider(slider, valueDisplay) {
+                if (slider && valueDisplay) {
+                    slider.addEventListener('input', () => {
+                        valueDisplay.textContent = `${slider.value}s`;
+                    });
+                }
+            }
+
+            setupDurationSlider(
+                document.getElementById('duration-slider'),
+                document.getElementById('duration-value')
+            );
+            setupDurationSlider(
+                document.getElementById('add-duration-slider'),
+                document.getElementById('add-duration-value')
+            );
+
+            document.getElementById('generate-video-btn').addEventListener('click', async () => {
+                try {
+                    const generateBtn = document.getElementById('generate-video-btn');
+                    generateBtn.innerHTML = '<div class="loading-spinner"></div>Generating...';
+                    generateBtn.disabled = true;
+
+                    const response = await fetch('/api/generate-video', { method: 'POST' });
+                    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                    const data = await response.json();
+
+                    generateBtn.innerHTML = `
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M12 18V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M4.93 4.93L7.76 7.76" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M16.24 16.24L19.07 19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M2 12H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M18 12H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M4.93 19.07L7.76 16.24" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M16.24 7.76L19.07 4.93" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        Generate Video
+                    `;
+                    generateBtn.disabled = false;
+
+                    if (data.videos && data.videos.length) {
+                        const modal = document.createElement('div');
+                        modal.className = 'modal-overlay active';
+                        modal.innerHTML = `
+                            <div class="modal">
+                                <div class="modal-header">
+                                    <div class="modal-title">Generated Videos</div>
+                                    <button class="close-btn">×</button>
+                                </div>
+                                <div class="modal-body"></div>
+                            </div>
+                        `;
+                        const modalBody = modal.querySelector('.modal-body');
+                        data.videos.forEach(video => {
+                            const videoEl = document.createElement('video');
+                            videoEl.src = video;
+                            videoEl.controls = true;
+                            videoEl.style.maxWidth = '100%';
+                            modalBody.appendChild(videoEl);
+                        });
+                        modal.querySelector('.close-btn').addEventListener('click', () => modal.remove());
+                        document.body.appendChild(modal);
+                    }
+                } catch (error) {
+                    alert(`Error generating video: ${error.message}`);
+                    console.error(error);
+                    document.getElementById('generate-video-btn').innerHTML = `
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M12 18V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M4.93 4.93L7.76 7.76" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M16.24 16.24L19.07 19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M2 12H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M18 12H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M4.93 19.07L7.76 16.24" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M16.24 7.76L19.07 4.93" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        Generate Video
+                    `;
+                    document.getElementById('generate-video-btn').disabled = false;
+                }
+            });
+
+            document.getElementById('export-btn').addEventListener('click', async () => {
+                try {
+                    const exportBtn = document.getElementById('export-btn');
+                    exportBtn.innerHTML = '<div class="loading-spinner"></div>Exporting...';
+                    exportBtn.disabled = true;
+
+                    const response = await fetch('/api/generate-video', { method: 'POST' });
+                    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                    const data = await response.json();
+
+                    exportBtn.innerHTML = `
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                        Export
+                    `;
+                    exportBtn.disabled = false;
+
+                    if (data.videos && data.videos.length) {
+                        data.videos.forEach(video => {
+                            const link = document.createElement('a');
+                            link.href = video;
+                            link.download = video.split('/').pop();
+                            link.click();
+                        });
+                    } else {
+                        alert('No videos to export.');
+                    }
+                } catch (error) {
+                    alert(`Error exporting videos: ${error.message}`);
+                    console.error(error);
+                    document.getElementById('export-btn').innerHTML = `
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                        Export
+                    `;
+                    document.getElementById('export-btn').disabled = false;
+                }
+            });
+
+            // Add a header link to image generator
+            const actionsContainer = document.querySelector('.actions');
+            if (actionsContainer) {
+                const imageGenLink = document.createElement('a');
+                imageGenLink.href = '/image';
+                imageGenLink.className = 'btn';
+                imageGenLink.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+                        <path d="M21 15L16 10L8 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    Switch to Image Generator
+                `;
+                actionsContainer.insertBefore(imageGenLink, actionsContainer.firstChild);
+            }
+
+            // Initialize
+            fetchScenes().then(renderTimeline);
+
+            // Function to fetch all videos from the server
+            async function fetchAllVideos() {
+                try {
+                    const response = await fetch('/api/scenes');
+                    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                    const scenes = await response.json();
+
+                    // Filter to only get video scenes
+                    const videoScenes = scenes.filter(scene =>
+                        scene.video_path && !scene.type?.includes('image')
+                    );
+
+                    renderAllVideos(videoScenes);
+                } catch (error) {
+                    console.error('Error fetching videos:', error);
+                    const allVideosTimeline = document.getElementById('all-videos-timeline');
+                    if (allVideosTimeline) {
+                        allVideosTimeline.innerHTML = `
+                    <div class="empty-timeline">
+                        <div>Error loading videos.</div>
+                        <div>${error.message}</div>
+                    </div>
+                `;
+                    }
+                }
+            }
+
+            function renderAllVideos(videos) {
+                const allVideosTimeline = document.getElementById('all-videos-timeline');
+                if (!allVideosTimeline) return;
+
+                if (!videos || videos.length === 0) {
+                    allVideosTimeline.innerHTML = `
+                <div class="empty-timeline">
+                    <div>No videos found.</div>
+                    <div>Start creating videos to see them here!</div>
+                </div>
+            `;
+                    return;
+                }
+
+                allVideosTimeline.innerHTML = '';
+
+                videos.forEach((video, index) => {
+                    const videoCard = document.createElement('div');
+                    videoCard.className = 'scene-card';
+                    videoCard.innerHTML = `
+                <div class="card-thumbnail">
+                    <img src="${video.thumbnail || '/static/placeholder.jpg'}" alt="Video Thumbnail">
+                    <div class="scene-number">Video ${index + 1}</div>
+                </div>
+                <div class="card-content">
+                    <div class="card-title">${video.prompt}</div>
+                    <div class="card-actions">
+                        <button class="btn card-btn preview-btn">Play</button>
+                        <button class="btn card-btn download-btn">Download</button>
+                    </div>
+                </div>
+            `;
+
+                    const previewBtn = videoCard.querySelector('.preview-btn');
+                    const downloadBtn = videoCard.querySelector('.download-btn');
+
+                    previewBtn.addEventListener('click', () => {
+                        if (video.video_path) {
+                            const videoEl = document.createElement('video');
+                            videoEl.src = video.video_path;
+                            videoEl.controls = true;
+                            videoEl.autoplay = true;
+                            videoEl.style.maxWidth = '100%';
+
+                            const modal = document.createElement('div');
+                            modal.className = 'modal-overlay active';
+                            modal.innerHTML = `
+                        <div class="modal">
+                            <div class="modal-header">
+                                <div class="modal-title">Video Preview</div>
+                                <button class="close-btn">×</button>
+                            </div>
+                            <div class="modal-body"></div>
+                        </div>
+                    `;
+                            modal.querySelector('.modal-body').appendChild(videoEl);
+                            modal.querySelector('.close-btn').addEventListener('click', () => modal.remove());
+                            document.body.appendChild(modal);
+                        } else {
+                            alert('No video available for preview.');
+                        }
+                    });
+
+                    downloadBtn.addEventListener('click', () => {
+                        const imagePath = scene.image_path || scene.thumbnail;
+                        if (imagePath) {
+                            const filename = getFilenameFromPath(imagePath);
+                            const link = document.createElement('a');
+                            link.href = `/download/${filename}`;
+                            link.download = filename; // This preserves the descriptive filename
+                            link.click();
+                        }
+                    });
+
+                    allVideosTimeline.appendChild(videoCard);
+                });
+            }
+
+            // Call the function to fetch all videos when page loads
+            fetchAllVideos();
+
+            // Set up refresh timer to update the videos section periodically
+            setInterval(fetchAllVideos, 30000); // Refresh every 30 seconds
+
+            // Add these helper functions
+            function getFilenameFromPath(path) {
+                if (!path) return "";
+                const parts = path.split('/');
+                return parts[parts.length - 1];
+            }
+
+            function getFriendlyNameFromFilename(filename, type = 'auto') {
+                if (!filename) return type === 'image' ? "Image" : "Video";
+
+                console.log("Processing filename:", filename, "Type:", type); // Debug log
+
+                // Handle full paths - extract just the filename part
+                let cleanFilename = filename;
+                if (filename.includes('/')) {
+                    cleanFilename = filename.split('/').pop();
+                }
+                if (filename.includes('\\')) {
+                    cleanFilename = filename.split('\\').pop();
+                }
+
+                // Remove file extension first
+                const withoutExtension = cleanFilename.replace(/\.(mp4|webm|mov|avi|jpg|jpeg|png|gif)$/i, '');
+
+                // Remove the UUID at the end (8 hex chars after the last underscore)
+                const withoutUuid = withoutExtension.replace(/_[a-f0-9]{8}$/, '');
+
+                // Remove the prefix (video_ or image_)
+                const withoutPrefix = withoutUuid.replace(/^(video_|image_)/, '');
+
+                // If nothing left after processing, return default
+                if (!withoutPrefix || withoutPrefix.trim() === '') {
+                    return type === 'image' ? "Generated Image" : "Generated Video";
+                }
+
+                // Replace underscores with spaces and capitalize each word
+                const formatted = withoutPrefix
+                    .replace(/_/g, ' ')
+                    .replace(/\b\w+/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+
+                console.log("Original:", filename, "Cleaned:", cleanFilename, "Final:", formatted); // Debug log
+                return formatted;
+            }
+
+            const floatingAddBtn = document.getElementById('floating-add-btn');
+            if (floatingAddBtn) {
+                floatingAddBtn.addEventListener('click', openAddModal);
+            }
+
+        });
+    </script>
+</body>
+
+</html>
